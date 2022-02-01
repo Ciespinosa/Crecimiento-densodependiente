@@ -1,0 +1,346 @@
+---
+title: "Crecimiento denso-dependiente"
+author: "Carlos Iván Espinosa"
+date: "Enero, 2016"
+output: html_document
+runtime: shiny
+---
+
+
+## Introducción
+
+
+<div class="columns-2">
+
+
+### <b>
+
+- El modelo de crecimiento denso-independiente de gorriones no se ajusto a lo que paso en realidad con los gorriones.
+
+### </b>
+
+- Mientras los gorriones en la realidad llegaban a un máximo y se reducia, nuestro modelo nos mostraba un aumento continuo.
+
+<div class="centered">
+![picture of spaghetti](sparrow.jpg)
+</div>
+
+
+- Observaciones de la abundancia de gorriones por 36 años
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=3.5, fig.width=4}
+
+library(primer)
+data(sparrows)
+
+plot(sparrows$Year, sparrows$Count,  type="b", ylab="N. aves", xlab="Años")
+
+```
+</div>
+
+
+## Crecimiento Discreto Denso-dependiente| Derivando la formula {.smaller.build}
+
+
+- El modelo de crecimiento discreto nos permite derivar un modelo que incluya la dependencia de densidad.
+
+### <b>
+<div class="blue3">
+<div class="centered">
+- $N_{t+1}=\lambda N_t$
+</div>
+</div>
+### </b>
+
+- Podemos descomponer $\lambda$ en dos partes; $\lambda= 1 + R_d$, donde $R_d$ es el factor de crecimiento discreto.  
+
+- Volviendo a la ecuación con la separación del componente $\lambda$
+
+<b>
+<div class="blue3">
+<div class="centered">
+- $N_{t+1}=\lambda N_t=N_t(1+R_d)=N_t+R_dN_t$
+</div>
+</div>
+</b>
+
+  - $N_t$, tamaño previo de la población
+  - $R_dN_t$, cambio proporcional
+
+## Crecimiento Discreto Denso-dependiente| Derivando la formula {.smaller.build}
+
+- Ahora podemos incluir el efecto de la competencia.
+    - El efecto que un individuo tiene sobre otro no es dependiente de la abundancia, siempre es el mismo
+    - Podemos representarlo con una constante __$\alpha$__
+- Si multiplicamos esta constante por el tamaño poblacional $N_t$ ($\alpha N_t$) tendremos el efecto negativo sobre el crecimiento de la población.  
+
+<b>
+<div class="blue3">
+<div class="centered">
+- Pero: 
+
+- ¿Cómo podemos incluir este efecto en el modelo de crecimiento?
+</div>
+</div>
+</b>
+
+## Crecimiento Discreto Denso-dependiente| Derivando la formula {.smaller.build}
+
+- Necesitamos multiplicar la tasa de incremento $R_d$ por un factor de escalamiento que:
+ 
+      1. ser igual a *uno* cuando el tamaño de la población es *cero* por lo que $R_d$ *x (factor de escalamiento)*$= R_d$.  
+      2. el factor de escalamiento debería ser igual a *cero* cuando la población sea tan grande que el incremento per capita sea *cero* $R_d$ *x (factor de escalamiento)*$= 0$. 
+
+- Incremento per capita$= r_d(1-\alpha N_t)$
+
+      
+- Donde $\alpha$ es el efecto negativo per capita de un individuo en el incremento per capita de la población.
+
+## ¿Que tamaño alcanza N cuando el incremento es cero?
+
+Podríamos resolver la ecuación señalando que $r_d$ es una constante y no va a cambiar, por lo que podemos poner que el incremento per cápita es igual a cero y resolver por $N_t$
+<b>
+<div class="blue3">
+<div class="centered">
+
+$$0= r_d(1-\alpha N_t)$$
+$$0= r_d-r_d\alpha N_t$$
+$$N_t=\frac{1}{\alpha}$$
+
+</div>
+</div>
+</b>
+
+Cuando la población alcanza $N=1/ \alpha$, el incremento de la población es igual a cero y la población deja de crecer.
+
+## Crecimiento Discreto Denso-dependiente| Derivando la formula {.smaller.build}
+
+Ahora en vez de un incremento per capita denso-independiente, $r_d$, tenemos incremento per capita dependiente de la densidad $r_d(1 - \alpha N_t)$, y nuestra ecuación de crecimiento de la población se convierte en:
+
+
+<b>
+<div class="blue3">
+<div class="centered">
+
+$$N_{t+1}=N_t+r_d(1- \alpha N_t)N_t$$
+
+O una forma alternativa sustituyendo $1/\alpha$ por K:
+
+$$N_{t+1}=N_t+r_d(1-\frac{N_t}{K})N_t$$
+
+</div>
+</div>
+</b>
+
+## Crecimiento Discreto Denso-dependiente
+```{r, fig.margin=TRUE, size="tynisize"}
+dlogistic <- function(alpha = 0.01, rd = 1, N0 = 2, t = 20) { 
+  N <- c(N0, numeric(t))
+  for (i in 1:t) N[i + 1] <- { 
+        N[i] + rd * N[i] * (1 - alpha * N[i])
+            } 
+    return(N) 
+       }
+```
+
+<div class="centered">
+
+```{r, fig.margin=TRUE,  fig.pos="center", fig.height=2.5, fig.width=3.5, echo=FALSE}
+par(mar=c(2,2,1,1))
+Nts <- dlogistic() 
+t <- 20; alpha <- 0.01 
+plot(0:t, Nts, type="b", cex.axis=0.8) 
+abline(h = 1/alpha, lty = 3)
+```
+</div>
+
+
+## Incremento total y _per capita_
+
+Podemos evaluar como crece la población.  
+
+Nos interesa conocer como se incrementa la población en cada transición y cual es el incremento per capita. 
+
+```{r, fig.margin=TRUE, fig.height=3.5, echo=FALSE}
+par(mfcol=c(1,2))
+total.incr <- Nts[1:t + 1] - Nts[1:t]
+per.capita.incr <- total.incr/Nts[1:t]
+plot(Nts[1:t], total.incr, type="b", cex.axis=0.8) 
+plot(Nts[1:t], per.capita.incr, type="b", cex.axis=0.8)
+
+```
+
+
+
+## Efecto del tamaño poblacional 
+
+<b>
+<div class="centered">
+<div class="blue3">
+
+¿Cuál será el efecto de las diferencias en el tamaño inicial de la población? 
+
+</div>
+</div>
+</b>
+```{r, echo=FALSE}
+
+inputPanel(
+  sliderInput("N0s", label = "N. poblacional:",
+              min = 0.1, max = 220.1, value = 1, step = 10)
+  )
+
+renderPlot({
+ 
+dlogistic <- function(alpha = 0.006, rd = 1, N0 = 2, t = 15) { 
+  N <- c(input$N0s, numeric(t))
+  for (i in 1:t) N[i + 1] <- { 
+        N[i] + rd * N[i] * (1 - alpha * N[i])
+            } 
+    return(N) 
+       }
+
+Nts <- dlogistic() 
+t <- 15; alpha <- 0.006
+plot(0:t, Nts, type="b", ylim=c(0,250)) 
+abline(h = 1/alpha, lty = 3)
+text(t, 1/alpha+10, expression(italic("K") == 1/alpha), adj = c(1, 0))
+})
+
+
+```
+
+## Efecto del tamaño poblacional 
+
+```{r, fig.margin=TRUE, fig.height=4.5}
+N0s <- c(0, runif(30) * 1.1 * 1/alpha) 
+
+N <- sapply(N0s, function(n) dlogistic(N0 = n))
+matplot(0:t, N, type = "l", lty = 1, lwd = 0.75, col = 1) 
+text(t, 1/alpha, expression(italic("K") == 1/alpha), adj = c(1, 0))
+```
+
+
+
+## Efecto de $\alpha$
+<b>
+<div class="centered">
+<div class="blue3">
+
+¿Qué pasará si $\alpha$ varía?  
+
+</div>
+</div>
+</b>
+
+- Cuando Nt es cero, el crecimiento de la población es cero, independientemente de la magnitud de $\alpha$. 
+
+- Cuando $N_t> 0$, N aumentará hasta que alcanze $1/ \alpha$. 
+
+- Al disminuir el efecto negativo de un individuo en el otro (es decir, disminuir $\alpha$), entonces el final de N aumenta, y $\alpha$ determina el tamaño final de N.
+
+
+<div class="centered">
+![picture of bird](aves.jpg)
+</div>
+
+##  Efecto de $\alpha$| Graficando el crecimiento
+
+
+```{r, echo=FALSE}
+
+inputPanel(
+  sliderInput("a.s", label = "Alphas:",
+              min = 0.001, max = 0.01, value = 1, step = 0.0004)
+  )
+
+renderPlot({
+t=20
+N <- sapply(input$a.s, function(a) dlogistic(alpha = a, t = 20))
+
+plot(0:t, N, type = "l", ylim = c(0, 1000), lty = 1, lwd = 0.75, 
+        col = 1) 
+text(8, 1/min(a.s), bquote(italic(alpha) == .(round(min(a.s), 3))), adj = c(1, 0.5)) 
+text(10, 1/max(a.s), bquote(italic(alpha) == .(round(max(a.s), 3))), adj = c(0, 1.2))
+
+})
+
+```
+
+##  Efecto de $\alpha$| Graficando el crecimiento
+
+
+```{r, fig.margin=TRUE, fig.height=4.5, echo=FALSE}
+
+a.s <- seq(0.001, 0.01, by = 0.0004)
+N <- sapply(a.s, function(a) dlogistic(alpha = a, t = 20))
+t=20
+matplot(0:t, N, type = "l", ylim = c(0, 1000), lty = 1, lwd = 0.75, col = 1) 
+text(8, 1/min(a.s), bquote(italic(alpha) == .(round(min(a.s), 3))), adj = c(1, 0.5)) 
+text(10, 1/max(a.s), bquote(italic(alpha) == .(round(max(a.s), 3))), adj = c(0, 1.2))
+```
+
+## Efectos de la tasa de incremento
+
+<b>
+<div class="centered">
+<div class="blue3">
+
+¿Cuál será el resultado de la variación de $r_d$?
+
+</div>
+</div>
+</b>
+
+<div class="centered">
+
+```{r, fig.margin=TRUE, fig.height=4, fig.width=5, echo=FALSE}
+par(mar=c(2,2,1,1))
+
+rd.v <- seq(1.2, 4, by = 0.2) 
+t <- 15 
+Ns <- data.frame(sapply(rd.v, function(r) dlogistic(rd = r, t = t)))
+
+matplot(0:t, Ns, type = "l", col = 1)
+```
+</div>
+
+## Efectos de la tasa de incremento
+
+
+```{r, fig.margin=TRUE, fig.height=4, fig.width=4.5, echo=FALSE}
+
+
+inputPanel(
+  sliderInput("rd", label = "Tasa de incremento:",
+              min = 1.2, max = 3.9, value = 1, step = 0.02)
+  )
+
+renderPlot({
+t <- 20 
+Ns <- data.frame(sapply(input$rd, function(r) dlogistic(rd = r, t = t)))
+
+par(mar=c(2,2,1,1))
+plot(0:t, t(Ns), type = "l", col = 1)
+
+})
+
+```
+
+## Efectos de la tasa de incremento
+
+- Con la $r_d = 1.3$, la población crece gradualmente hasta K. 
+
+- Con $r_d = 1.6 a 1.9$ la población sobrepasa K, creando oscilaciones que amortiguan el regreso a K. 
+
+- Cuando $r_d = 2.2$ la población rebotan de ida y vuelta entre `dos` valores. 
+
+- Cuando $r_d = 2.5$ N rebota alrededor, pero entre `cuatro` diferentes valores.
+
+- Cuando $r_d = 2.8$,  rebota con valores que varían en cada ocasión. 
+
+
+
+
+
+

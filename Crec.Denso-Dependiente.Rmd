@@ -1,0 +1,157 @@
+---
+title: "Crecimiento Denso-Independiente"
+author: "Carlos Iván Espinosa"
+date: "Enero, 2015"
+output: rmarkdown::tufte_handout
+---
+
+#__Introducción__
+
+Cuando modelamos el crecimiento de los gorriones sin referencia de la abundancia de los gorriones usando un pequeño subconjunto de datos (7 años), el modelo resultante se alejaba de lo que sucede en realidad. Si damos una revisión a los datos vemos que la población crece hasta unos niveles y luego decrece y se forman ciclos (Figura 1). Esto implica que existen factores que están regulando la población y que estos factores son denso-dependientes. 
+
+```{r, fig.margin=TRUE, fig.height=4.5, fig.cap="Conteo de gorriones por 36 años", warning=FALSE, message=FALSE}
+
+library(primer)
+data(sparrows)
+
+plot(sparrows$Year, sparrows$Count,  type="b", ylab="N. aves", xlab="Años")
+```
+El crecimiento de la población dependiente de la densidad se presenta cuando la tasa de crecimiento de la población per cápita depende estadísticamente de la densidad de la población. Los ecologistas consideran que la dependencia negativa de la densidad suele ser una característica de una población que se encuentra bajo la influencia de*competencia intraespecífica*. Es decir, los individuos de la misma especie están compitiendo por recursos escasos compartidos.
+
+#__Crecimiento Discreto Denso-dependiente__
+
+El crecimiento denso-dependiente nos plantea que el crecimiento no puede ser ilimitado y que existen factores que regulan el tamaño de la población. Podemos utilizar el modelo de crecimiento discreto (Ecuación 1) para derivar un modelo que incluya la dependencia de densidad.
+
+\marginnote{Ecuación 1:
+$$N_{t+1}=\lambda N_t$$
+}
+
+Como lo vimos antes podemos descomponer $\lambda$ en dos partes; $\lambda= 1 + R_d$, donde $R_d$ es el factor de crecimiento discreto.  Volviendo a la ecuación con la separación del componente $\lambda$ (Ecuación 2):
+
+\marginnote{Ecuación 2:
+$$N_{t+1}=\lambda N_t=N_t(1+R_d)=N_t+R_dN_t$$
+}
+
+En la ecuación 2 vemos que la tasa de incremento ahora es igual a $N_t$, el tamaño previo de la población, más el cambio proporcional $R_dN_t$. La denso-dependencia plantea que cada individuo ejerce un pequeño efecto negativo sobre la tasa de crecimiento ($R_dN_t$), de esta manera el crecimiento de la población esta supeditado al tamaño de la poblacón. 
+
+El efecto que cada individuo tiene es siempre el mismo, y es independiente del tamaño de la población, esto nos permite representar este efecto comu una constante $\alpha$, si multiplicamos esta constante por el tamaño poblacional $N_t$ ($\alpha N_t$) tendremos el efecto negativo total de los individuos sobre el crecimiento de la población.  
+
+Una forma conveniente para implementar este efecto es seguir usando $R_d$ y multiplicarlo por un factor de escalamiento. Este factor de escalamiento debería cumplir los siguientes requisitos: i) ser igual a *uno* cuando el tamaño de la población es *cero* por lo que $R_d$ *x (factor de escalamiento)*$= R_d$.  ii) El factor de escalamiento debería ser igual a *cero* cuando la población sea tan grande que el incremento per capita sea *cero* $R_d$ *x (factor de escalamiento)*$= 0$.  Estos requisitos son cumplidos por un factor de escalamiento como la mostrada en la ecuación 3.
+
+\marginnote{Ecuación 3:
+Incremento per capita$$= r_d(1-\alpha N_t)$$
+      }
+      
+Donde $\alpha$ es el efecto negativo per capita de un individuo en el incremento per capita de la población.
+
+Para conocer cual es el valor de N donde el crecimiento per cápita es igual a cero, podríamos resolver la ecuación 3 señalando que $r_d$ es una constante y no va a cambiar, por lo que podemos poner que el incremento per cápita es igual a cero y resolver por $N_t$ (Ecuación 4).
+
+\marginnote{Ecuación 4:
+
+$$0= r_d(1-\alpha N_t)$$
+$$0= r_d-r_d\alpha N_t$$
+$$N_t=\frac{1}{\alpha}$$
+  }
+
+Cuando la población alcanza $N=1/ \alpha$, el incremento de la población es igual a cero y la población deja de crecer.
+
+En cierto sentido, el reordenamiento algebraico (ecuación 4) está en el centro de la ecología teórica. Comenzamos con un conjunto de supuestos ($r_d$ y $\alpha$ constante), asumimos una relación entre ellos ($r_d[1- \alpha N_t]$), y examinamos una de las consecuencias: la población dejará de cambiar cuando alcanza una densidad de $1/ \alpha$. 
+Ahora en vez de un incremento per capita denso-independiente, $r_d$, tenemos incremento per capita dependiente de la densidad $r_d(1 - \alpha N_t)$, y nuestra ecuación de crecimiento de la población (ecuación 1) se convierte en:
+
+\marginnote{Ecuación 5:
+
+$$N_{t+1}=N_t+r_d(1- \alpha N_t)N_t$$
+O una forma alternativa sustituyendo $1/\alpha$ por K:
+$$N_{t+1}=N_t+r_d(1-\frac{N_t}{K})N_t$$
+
+
+}
+
+
+```{r, fig.margin=TRUE, fig.height=4.5}
+dlogistic <- function(alpha = 0.01, rd = 1, N0 = 2, t = 15) { 
+  N <- c(N0, numeric(t))
+  for (i in 1:t) N[i + 1] <- { 
+        N[i] + rd * N[i] * (1 - alpha * N[i])
+            } 
+    return(N) 
+       }
+
+Nts <- dlogistic() 
+t <- 15; alpha <- 0.01 
+plot(0:t, Nts, type="b") 
+abline(h = 1/alpha, lty = 3)
+
+```
+Con los datos de crecimiento poblacional generados podemos evaluar como crece la población.  Nos interesa conocer como se incrementa la población en cada transición y cual es el incremento per capita. 
+
+```{r, fig.margin=TRUE, fig.height=4.5}
+total.incr <- Nts[1:t + 1] - Nts[1:t]
+per.capita.incr <- total.incr/Nts[1:t]
+plot(Nts[1:t], total.incr) 
+plot(Nts[1:t], per.capita.incr)
+
+```
+
+#Efecto del tamaño inicial
+
+¿Cuál será el efecto de las diferencias en el tamaño inicial de la población? 
+
+El tamaño de la población afecta en dos direcciones, con tamaños poblacionales muy reducidos cercanos a *cero* y con tamaños cercanos a *K* la población crece lentamente. 
+
+Como  vemos en la figura 4 la población tiende a *K*, esta funciona como un atractor, tanto si la población es menor o mayor a *K*
+
+```{r, fig.margin=TRUE, fig.height=4.5}
+N0s <- c(0, runif(30) * 1.1 * 1/alpha) 
+
+N <- sapply(N0s, function(n) dlogistic(N0 = n))
+matplot(0:t, N, type = "l", lty = 1, lwd = 0.75, col = 1) 
+text(t, 1/alpha, expression(italic("K") == 1/alpha), adj = c(1, 0))
+```
+#Efectos de alpha
+
+¿Qué pasará si $\alpha$ varía?  En primer lugar, cuando Nt es cero, el crecimiento de la población es cero, independientemente de la magnitud de $\alpha$. Sin embargo, cuando $N_t> 0$, N aumentará hasta que alcanze $1/ \alpha$. El resultado parece bastante claro, al disminuir el efecto negativo de un individuo en el otro (es decir, disminuir $\alpha$), entonces el final de N aumenta, y $\alpha$ determina el tamaño final de N.
+
+```{r, fig.margin=TRUE, fig.height=4.5}
+
+a.s <- 1/runif(30, min = 50, max = 1000) 
+N <- sapply(a.s, function(a) dlogistic(alpha = a, t = 15))
+
+matplot(0:t, N, type = "l", ylim = c(0, 1000), lty = 1, lwd = 0.75, 
+        col = 1) 
+text(8, 1/min(a.s), bquote(italic(alpha) == .(round(min(a.s), 3))), adj = c(1, 0.5)) 
+text(10, 1/max(a.s), bquote(italic(alpha) == .(round(max(a.s), 3))), adj = c(0, 1.2))
+```
+
+#Efectos de la tasa de incremento
+
+¿Cuál será el resultado de la variación de $r_d$? 
+
+Probablemente nada inesperado, si nuestra exploración de crecimiento geométrico sirve de guía. Nuestro enfoque analítico indica que no debe tener ningún efecto sobre K. Sin embargo,  exploraremos los efectos de la variacion sistemática de $r_d$, y examinemos el resultado. 
+
+
+```{r, fig.margin=TRUE, fig.height=4.5}
+rd.v <- seq(1.3, 2.8, by = 0.3) 
+t <- 15 
+Ns <- data.frame(sapply(rd.v, function(r) dlogistic(rd = r, t = t)))
+
+matplot(0:t, Ns, type = "l", col = 1)
+```
+
+Hagamos gráficos separados para ver lo que sucede.
+
+HACER EL GRAFICO SEPARADO
+
+Con la $r_d$ más baja, la población crece gradualmente hacia su capacidad de carga, K, y se queda allí. Con valores de $r_d =$ 1.6 a 1.9 la población sobrepasa K sólo un poco, creando oscilaciones; estas oscilaciones, sin embargo, amortiguan el regreso a . Cuando $r_d = 2.2$, sin embargo, las poblaciones parecen rebotar de ida y vuelta entre dos valores. Cuando $r_d = 2.5$, N rebota alrededor, pero ahora rebota entre cuatro diferentes valores de $r_d$. Cuando $r_d = 2.8$, sin embargo, parece que van y vuelven alrededor de K, pero con valores que varían en cada ocasión. 
+
+Pero este es un modelo simple, y no incluye números aleatorios. Entonces, ¿Qué sucede?
+
+Lo que está pasando es la aparición de ciclos límite estables, y chaos. A bajo $r_d$, tenemos una aproximación sencilla asintótica a K. Cuando $r_d$ aumenta, la población rebasa la capacidad de carga y presenta oscilaciones amortiguadas. Cuando $2< r_d <2.449$, la población forma ciclos límite de dos puntos. En este caso, estos dos puntos son atractores estables. Independientemente donde la población comienza, se siente atraído por los mismos dos puntos. Cuando $r_d$ aumenta aún más, el número de puntos aumenta a un ciclo límite de cuatro puntos (por ejemplo, en $r_d = 2.5$), entonces se genera un ciclo de ocho puntos, un ciclo límite de 16 puntos, y así sucesivamente. Estos puntos son atractores estables. Cuando $r_d$ aumenta aún más, sin embargo, ciclos límite estables cambian en el caos ($r_d> 2.57$). El caos es una trayectoria fluctuante no determinista, que está delimitada, y sensible a las condiciones iniciales. 
+
+Robert May [128] conmocionó a la comunidad ecológica cuando  demostró por primera vez ciclos límite estables y el caos utilizando este modelo. Su trabajo pionero, realizado sobre una calculadora de mano, demostró como  dinámicas aleatorias surgen como resultado de reglas deterministas muy simples. Entre otras cosas, hizo que los biólogos de población se preguntan si la predicción era posible. En general, sin embargo, el caos parece requerir circunstancias muy especiales, incluso un muy alto crecimiento de la población.
+
+¿Existe una interpretación biológica de estas fluctuaciones? 
+
+Considere algunas entorno sencillo, en el que los pequeños animales que se alimentan de vegetación con altas tasas reproductivas comen casi toda la vegetación en un año. Al año siguiente, la vegetación no se han recuperado, pero la población animal seguirá siendo muy alto. Así, la alta tasa de crecimiento provoca una desconexión entre el tamaño actual de la población, y los efectos negativos de aquellos individuos que componen la población.
+
+Los efectos negativos de las acciones de los individuos (por ejemplo, consumo de recursos) son sentidas por los descendientes de esos individuos, en lugar de los propios individuos. No vamos a agotar el tema aquí, pero sin duda es posible extender esta dependencia de la densidad retrasado a una amplia variedad de poblaciones. El modelo logístico discreto ha construido en un retraso o retardo de tiempo, de un paso de tiempo, debido a que el incremento de crecimiento hace que un solo salto de un paso de tiempo. Este retraso no se encuentra en el modelo de tiempo continuo análogo, porque el incremento de crecimiento cubre un pequeño paso de tiempo infinito.
